@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Сервис интеграции "Персонал ↔ Сервисные работы"</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        :root {
+            --primary: #2c3e50;
+            --secondary: #3498db;
+            --success: #27ae60;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+            --light: #ecf0f1;
+            --dark: #2c3e50;
+            --gray: #95a5a6;
+        }
+        
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        /* Header */
+        header {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 1.5rem 0;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .logo h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+        }
+        
+        .logo-icon {
+            font-size: 2rem;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .role-badge {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+        
+        /* Navigation */
+        .tabs {
+            display: flex;
+            background-color: white;
+            border-bottom: 1px solid #e0e0e0;
+            overflow-x: auto;
+        }
+        
+        .tab {
+            padding: 15px 25px;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+            white-space: nowrap;
+            font-weight: 500;
+        }
+        
+        .tab.active {
+            border-bottom-color: var(--secondary);
+            color: var(--secondary);
+            background-color: #f8fafc;
+        }
+        
+        .tab:hover {
+            background-color: #f8fafc;
+        }
+        
+        .tab-icon {
+            margin-right: 8px;
+        }
+        
+        /* Main Content */
+        .main-content {
+            padding: 30px 0;
+        }
+        
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.5s;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .dashboard-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+        
+        .card {
+            background-color: white;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .card-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--primary);
+        }
+        
+        .card-count {
+            background-color: var(--secondary);
+            color: white;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+        }
+        
+        /* Status badges */
+        .status-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        
+        .status-new { background-color: #e3f2fd; color: #1976d2; }
+        .status-in-progress { background-color: #fff3e0; color: #f57c00; }
+        .status-assigned { background-color: #e8f5e9; color: #388e3c; }
+        .status-completed { background-color: #f3e5f5; color: #7b1fa2; }
+        .status-cancelled { background-color: #ffebee; color: #d32f2f; }
+        
+        /* Tables */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        }
+        
+        .data-table th {
+            background-color: var(--primary);
+            color: white;
+            text-align: left;
+            padding: 15px 20px;
+            font-weight: 600;
+        }
+        
+        .data-table td {
+            padding: 15px 20px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .data-table tr:hover {
+            background-color: #f9f9f9;
+        }
+        
+        /* Buttons */
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            border-radius: 6px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+        }
+        
+        .btn-primary {
+            background-color: var(--secondary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: #2980b9;
+        }
+        
+        .btn-success {
+            background-color: var(--success);
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background-color: #219653;
+        }
+        
+        .btn-outline {
+            background-color: transparent;
+            color: var(--secondary);
+            border: 1px solid var(--secondary);
+        }
+        
+        .btn-outline:hover {
+            background-color: rgba(52, 152, 219, 0.1);
+        }
+        
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 0.85rem;
+        }
+        
+        /* Forms */
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--primary);
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 1rem;
+            transition: border 0.3s;
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: var(--secondary);
+        }
+        
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background-color: white;
+            width: 90%;
+            max-width: 600px;
+            border-radius: 10px;
+            overflow: hidden;
+            animation: modalAppear 0.3s;
+        }
+        
+        @keyframes modalAppear {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        
+        .modal-header {
+            background-color: var(--primary);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+        
+        .modal-body {
+            padding: 25px;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .dashboard-cards {
+                grid-template-columns: 1fr;
+            }
+            
+            .header-content {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+            
+            .tabs {
+                justify-content: flex-start;
+            }
+            
+            .tab {
+                padding: 15px;
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <div class="logo-icon">
+                        <i class="fas fa-sync-alt"></i>
+                    </div>
+                    <div>
+                        <h1>Сервис интеграции</h1>
+                        <p>Персонал ↔ Сервисные работы</p>
+                    </div>
+                </div>
+                <div class="user-info">
+                    <div class="role-badge" id="currentRole">Управляющий магазином</div>
+                    <div class="user-avatar">
+                        <i class="fas fa-user-circle" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <div class="tabs">
+        <div class="tab active" data-tab="dashboard">
+            <i class="fas fa-tachometer-alt tab-icon"></i>Дашборд
+        </div>
+        <div class="tab" data-tab="my-tasks">
+            <i class="fas fa-tasks tab-icon"></i>Мои задания
+        </div>
+        <div class="tab" data-tab="create-task">
+            <i class="fas fa-plus-circle tab-icon"></i>Создать задание
+        </div>
+        <div class="tab" data-tab="specialists">
+            <i class="fas fa-users tab-icon"></i>Специалисты
+        </div>
+        <div class="tab" data-tab="hr-requests">
+            <i class="fas fa-clipboard-list tab-icon"></i>Заявки в HR
+        </div>
+        <div class="tab" data-tab="analytics">
+            <i class="fas fa-chart-bar tab-icon"></i>Аналитика
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container main-content">
+        <!-- Dashboard Tab -->
+        <div id="dashboard" class="tab-content active">
+            <h2 style="margin-bottom: 25px; color: var(--primary);">Дашборд</h2>
+            
+            <div class="dashboard-cards">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Активные задания</div>
+                        <div class="card-count">3</div>
+                    </div>
+                    <p>Задания в статусе "в работе"</p>
+                    <div style="margin-top: 15px;">
+                        <span class="status-badge status-in-progress">в работе</span>
+                        <span class="status-badge status-new" style="margin-left: 10px;">новый</span>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Доступные специалисты</div>
+                        <div class="card-count">12</div>
+                    </div>
+                    <p>Свободные специалисты в системе "Персонал"</p>
+                    <div style="margin-top: 15px;">
+                        <button class="btn btn-primary btn-sm" onclick="openModal('specialist-search')">
+                            <i class="fas fa-search"></i> Найти специалиста
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Заявки в HR</div>
+                        <div class="card-count">2</div>
+                    </div>
+                    <p>Требуется подбор новых специалистов</p>
+                    <div style="margin-top: 15px;">
+                        <span class="status-badge status-new">ожидает обработки</span>
+                    </div>
+                </div>
+            </div>
+            
+            <h3 style="margin: 30px 0 15px; color: var(--primary);">Последние задания</h3>
+            <div style="overflow-x: auto;">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Тип работ</th>
+                            <th>Магазин</th>
+                            <th>Дата выполнения</th>
+                            <th>Статус</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>#0012</td>
+                            <td>Инвентаризация</td>
+                            <td>Магазин #45</td>
+                            <td>15.10.2023</td>
+                            <td><span class="status-badge status-in-progress">в работе</span></td>
+                            <td>
+                                <button class="btn btn-outline btn-sm" onclick="viewTask(12)">Просмотр</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>#0011</td>
+                            <td>Ремонт холодильного оборудования</td>
+                            <td>Магазин #78</td>
+                            <td>12.10.2023</td>
+                            <td><span class="status-badge status-assigned">исполнитель назначен</span></td>
+                            <td>
+                                <button class="btn btn-outline btn-sm" onclick="viewTask(11)">Просмотр</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>#0010</td>
+                            <td>Клининг после ремонта</td>
+                            <td>Магазин #23</td>
+                            <td>10.10.2023</td>
+                            <td><span class="status-badge status-completed">выполнено</span></td>
+                            <td>
+                                <button class="btn btn-outline btn-sm" onclick="viewTask(10)">Просмотр</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- My Tasks Tab -->
+        <div id="my-tasks" class="tab-content">
+            <h2 style="margin-bottom: 25px; color: var(--primary);">Мои задания</h2>
+            
+            <div style="margin-bottom: 20px; display: flex; gap: 10px;">
+                <button class="btn btn-outline active-filter">Все</button>
+                <button class="btn btn-outline">Новые</button>
+                <button class="btn btn-outline">В работе</button>
+                <button class="btn btn-outline">Выполненные</button>
+            </div>
+            
+            <div style="overflow-x: auto;">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Тип работ</th>
+                            <th>Дата создания</th>
+                            <th>Дата выполнения</th>
+                            <th>Статус</th>
+                            <th>Исполнитель</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody id="my-tasks-table">
+                        <!-- Заполняется JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Create Task Tab -->
+        <div id="create-task" class="tab-content">
+            <h2 style="margin-bottom: 25px; color: var(--primary);">Создание нового задания</h2>
+            
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Форма задания</div>
+                </div>
+                <div class="card-body">
+                    <form id="taskForm">
+                        <div class="form-group">
+                            <label class="form-label" for="taskType">Тип работ *</label>
+                            <select class="form-control" id="taskType" required>
+                                <option value="">Выберите тип работ</option>
+                                <option value="inventory">Инвентаризация</option>
+                                <option value="cleaning">Клининг</option>
+                                <option value="repair">Ремонт оборудования</option>
+                                <option value="territory">Уборка территории</option>
+                                <option value="other">Другое</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="taskDescription">Описание работ *</label>
+                            <textarea class="form-control" id="taskDescription" rows="3" required placeholder="Подробно опишите объем работ..."></textarea>
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                            <div class="form-group">
+                                <label class="form-label" for="startDate">Дата начала работ *</label>
+                                <input type="date" class="form-control" id="startDate" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label" for="endDate">Дата окончания работ *</label>
+                                <input type="date" class="form-control" id="endDate" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="specialistRequirements">Требования к специалисту</label>
+                            <textarea class="form-control" id="specialistRequirements" rows="2" placeholder="Опыт работы, квалификация, специальные навыки..."></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="priority">Приоритет</label>
+                            <select class="form-control" id="priority">
+                                <option value="normal">Нормальный</option>
+                                <option value="high">Высокий</option>
+                                <option value="urgent">Срочный</option>
+                            </select>
+                        </div>
+                        
+                        <div style="display: flex; gap: 15px; margin-top: 30px;">
+                            <button type="button" class="btn btn-primary" onclick="saveTask()">
+                                <i class="fas fa-save"></i> Сохранить как черновик
+                            </button>
+                            <button type="button" class="btn btn-success" onclick="sendToOffice()">
+                                <i class="fas fa-paper-plane"></i> Отправить в офис
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Specialists Tab -->
+        <div id="specialists" class="tab-content">
+            <h2 style="margin-bottom: 25px; color: var(--primary);">База специалистов</h2>
+            
+            <div style="margin-bottom: 20px; display: flex; gap: 15px; align-items: center;">
+                <input type="text" class="form-control" style="flex: 1; max-width: 300px;" placeholder="Поиск специалистов...">
+                <button class="btn btn-primary">
+                    <i class="fas fa-search"></i> Найти
+                </button>
+                <button class="btn btn-outline" onclick="openModal('add-specialist')">
+                    <i class="fas fa-user-plus"></i> Добавить специалиста
+                </button>
+            </div>
+            
+            <div style="overflow-x: auto;">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>ФИО</th>
+                            <th>Специализация</th>
+                            <th>Статус</th>
+                            <th>Рейтинг</th>
+                            <th>Дата последнего задания</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>SP-045</td>
+                            <td>Иванов Сергей Петрович</td>
+                            <td>Холодильное оборудование</td>
+                            <td><span class="status-badge status-new">Свободен</span></td>
+                            <td>★★★★☆ (4.2)</td>
+                            <td>05.10.2023</td>
+                            <td>
+                                <button class="btn btn-outline btn-sm" onclick="assignSpecialist('SP-045')">Назначить</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>SP-112</td>
+                            <td>Петрова Анна Владимировна</td>
+                            <td>Инвентаризация</td>
+                            <td><span class="status-badge status-in-progress">Занят до 12.10</span></td>
+                            <td>★★★★★ (4.8)</td>
+                            <td>08.10.2023</td>
+                            <td>
+                                <button class="btn btn-outline btn-sm" disabled>Недоступен</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>SP-078</td>
+                            <td>Сидоров Алексей Иванович</td>
+                            <td>Клининг, уборка</td>
+                            <td><span class="status-badge status-new">Свободен</span></td>
+                            <td>★★★☆☆ (3.5)</td>
+                            <td>01.10.2023</td>
+                            <td>
+                                <button class="btn btn-outline btn-sm" onclick="assignSpecialist('SP-078')">Назначить</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- HR Requests Tab -->
+        <div id="hr-requests" class="tab-content">
+            <h2 style="margin-bottom: 25px; color: var(--primary);">Заявки на подбор в HR</h2>
+            
+            <div style="margin-bottom: 20px;">
+                <button class="btn btn-primary" onclick="openModal('create-hr-request')">
+                    <i class="fas fa-plus"></i> Создать заявку в HR
+                </button>
+            </div>
+            
+            <div style="overflow-x: auto;">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID заявки</th>
+                            <th>Связанное задание</th>
+                            <th>Требуемая специализация</th>
+                            <th>Дата создания</th>
+                            <th>Статус</th>
+                            <th>Ответственный HR</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>HR-008</td>
+                            <td>#0012 (Инвентаризация)</td>
+                            <td>Специалист по инвентаризации</td>
+                            <td>05.10.2023</td>
+                            <td><span class="status-badge status-in-progress">в работе</span></td>
+                            <td>Смирнова О.И.</td>
+                            <td>
+                                <button class="btn btn-outline btn-sm">Подробнее</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>HR-007</td>
+                            <td>#0009 (Ремонт витрин)</td>
+                            <td>Стекольщик-монтажник</td>
+                            <td>02.10.2023</td>
+                            <td><span class="status-badge status-new">новая</span></td>
+                            <td>—</td>
+                            <td>
+                                <button class="btn btn-outline btn-sm">Подробнее</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Analytics Tab -->
+        <div id="analytics" class="tab-content">
+            <h2 style="margin-bottom: 25px; color: var(--primary);">Аналитика и отчеты</h2>
+            
+            <div class="dashboard-cards">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Выполненные задания</div>
+                        <div class="card-count">48</div>
+                    </div>
+                    <p>За последние 30 дней</p>
+                    <div style="margin-top: 15px; height: 40px; background: #f0f0f0; border-radius: 5px; overflow: hidden;">
+                        <div style="width: 85%; height: 100%; background: var(--success);"></div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Среднее время выполнения</div>
+                        <div class="card-count">2.3 дн</div>
+                    </div>
+                    <p>От создания до закрытия задания</p>
+                    <div style="margin-top: 15px; font-size: 0.9rem;">
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>Быстрее среднего</span>
+                            <span>+15%</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Заявки в HR</div>
+                        <div class="card-count">12</div>
+                    </div>
+                    <p>Создано за последний месяц</p>
+                    <div style="margin-top: 15px;">
+                        <span class="status-badge status-new">8 открытых</span>
+                        <span class="status-badge status-completed" style="margin-left: 10px;">4 закрыто</span>
+                    </div>
+                </div>
+            </div>
+            
+            <h3 style="margin: 30px 0 15px; color: var(--primary);">Распределение по типам работ</h3>
+            <div style="background: white; padding: 25px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.05);">
+                <div style="display: flex; align-items: center; justify-content: center; height: 200px; color: var(--gray);">
+                    <i class="fas fa-chart-pie" style="font-size: 3rem; margin-right: 15px;"></i>
+                    <span>График распределения заданий по типам работ</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div id="taskModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Задание #0012</div>
+                <button class="modal-close" onclick="closeModal('taskModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="margin-bottom: 20px;">
+                    <h3>Инвентаризация склада</h3>
+                    <p><strong>Магазин:</strong> #45, г. Москва, ул. Ленина, 10</p>
+                    <p><strong>Дата выполнения:</strong> 15.10.2023 - 17.10.2023</p>
+                    <p><strong>Статус:</strong> <span class="status-badge status-in-progress">в работе</span></p>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <h4>Описание работ:</h4>
+                    <p>Проведение полной инвентаризации складских остатков в магазине №45. Требуется пересчитать все товарные позиции, сверить с системой учета, составить акт расхождений.</p>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <h4>Требования к специалисту:</h4>
+                    <p>Опыт проведения инвентаризации в розничной торговле не менее 1 года. Внимательность, аккуратность.</p>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <h4>История статусов:</h4>
+                    <ul style="list-style: none; padding-left: 0;">
+                        <li style="padding: 5px 0; border-bottom: 1px solid #eee;">05.10.2023 10:30 - Создано (новый)</li>
+                        <li style="padding: 5px 0; border-bottom: 1px solid #eee;">05.10.2023 11:15 - Отправлено в офис (в работе)</li>
+                    </ul>
+                </div>
+                
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-primary" onclick="assignToThisTask()">Назначить специалиста</button>
+                    <button class="btn btn-outline">Создать заявку в HR</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="specialistSearchModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Поиск специалиста</div>
+                <button class="modal-close" onclick="closeModal('specialistSearchModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label" for="searchSpecialization">Специализация</label>
+                    <select class="form-control" id="searchSpecialization">
+                        <option value="">Любая</option>
+                        <option value="inventory">Инвентаризация</option>
+                        <option value="cleaning">Клининг</option>
+                        <option value="repair">Ремонт оборудования</option>
+                    </select>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="form-group">
+                        <label class="form-label" for="searchDateFrom">Свободен с</label>
+                        <input type="date" class="form-control" id="searchDateFrom">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="searchDateTo">Свободен по</label>
+                        <input type="date" class="form-control" id="searchDateTo">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="searchRating">Минимальный рейтинг</label>
+                    <select class="form-control" id="searchRating">
+                        <option value="0">Любой</option>
+                        <option value="3">★★★ и выше</option>
+                        <option value="4">★★★★ и выше</option>
+                        <option value="5">★★★★★</option>
+                    </select>
+                </div>
+                
+                <div style="margin-top: 25px;">
+                    <button class="btn btn-primary" style="width: 100%;">
+                        <i class="fas fa-search"></i> Искать в системе "Персонал"
+                    </button>
+                </div>
+                
+                <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+                    <h4>Результаты поиска (3):</h4>
+                    <div style="margin-top: 15px;">
+                        <div style="padding: 15px; border: 1px solid #eee; border-radius: 5px; margin-bottom: 10px;">
+                            <strong>Иванов Сергей Петрович</strong> (SP-045)<br>
+                            <small>Холодильное оборудование ★★★★☆</small>
+                            <button class="btn btn-outline btn-sm" style="float: right;">Выбрать</button>
+                        </div>
+                        
+                        <div style="padding: 15px; border: 1px solid #eee; border-radius: 5px; margin-bottom: 10px;">
+                            <strong>Петрова Анна Владимировна</strong> (SP-112)<br>
+                            <small>Инвентаризация ★★★★★ (занята до 12.10)</small>
+                            <button class="btn btn-outline btn-sm" style="float: right;" disabled>Недоступен</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
